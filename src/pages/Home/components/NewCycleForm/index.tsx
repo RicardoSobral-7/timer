@@ -1,28 +1,12 @@
-import { useForm } from "react-hook-form";
+import { useContext } from "react";
 import { FormContainer, MinutsAmountInput, TaskInput } from "./styles";
-import * as zod from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-// schemaBased  é um formato de validação em cima disso
-const newCicleFormValidationSchema = zod.object({
-  task: zod.string().min(1, "Informe a tarefa"),
-  minutesAmount: zod
-    .number()
-    .min(5, "O ciclo precisa ser de no mínimo 5 minutos.")
-    .max(60, "O ciclo precisa ser de no máximo 60 minutos."),
-});
-
-// aqui criamos uma tipagem, onde se alterar a cima já criamos uma nova tipagem automática para  nos ajudar a completar as coisas no form
-type NewCycleFormData = zod.infer<typeof newCicleFormValidationSchema>;
+import { useFormContext } from "react-hook-form";
+import { CyclesContext } from "../../../../contexts/CyclesContext";
 
 export function NewCicleForm() {
-  const { register, handleSubmit, watch, reset } = useForm<NewCycleFormData>({
-    resolver: zodResolver(newCicleFormValidationSchema),
-    defaultValues: {
-      task: "",
-      minutesAmount: 0,
-    },
-  });
+  const { activeCycle } = useContext(CyclesContext);
+  // a baixo vamos pegar o contexto que passamos lá na home, no provider
+  const { register } = useFormContext();
 
   return (
     <FormContainer>

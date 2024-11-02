@@ -1,105 +1,64 @@
 import { HandPalm, Play } from "phosphor-react";
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import {
   HomeContainer,
   StartCountdownButton,
   StopCountDownButton,
 } from "./styles";
 // lib necessária para utilizar o zod como validador
-import { differenceInSeconds } from "date-fns";
-import { createContext, useEffect, useState } from "react";
-import { NewCicleForm } from "./components/NewCycleForm";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useContext } from "react";
+import * as zod from "zod";
+import { CyclesContext } from "../../contexts/CyclesContext";
 import { Countdown } from "./components/Countdown";
+import { NewCicleForm } from "./components/NewCycleForm";
 
-interface Cycle {
-  id: string;
-  task: string;
-  minutesAmount: number;
-  startDate: Date;
-  interruptDate?: Date;
-  finishedDate?: Date;
-}
+// schemaBased  é um formato de validação em cima disso
+const newCicleFormValidationSchema = zod.object({
+  task: zod.string().min(1, "Informe a tarefa"),
+  minutesAmount: zod
+    .number()
+    .min(5, "O ciclo precisa ser de no mínimo 5 minutos.")
+    .max(60, "O ciclo precisa ser de no máximo 60 minutos."),
+});
 
-interface CyclesContextType {
-  activeCycle: Cycle | undefined;
-  activeCycleId: string | null;
-  
-}
-
-export const CyclesContext = createContext({} as CyclesContextType);
+// aqui criamos uma tipagem, onde se alterar a cima já criamos uma nova tipagem automática para  nos ajudar a completar as coisas no form
+type NewCycleFormData = zod.infer<typeof newCicleFormValidationSchema>;
 
 export function Home() {
-  const [cycles, setCycles] = useState<Cycle[]>([]);
-  const [activeCycleId, setActiveCycle] = useState<string | null>(null);
+  const { activeCycle, createNewCycle, interruptCurrentCycle } =
+    useContext(CyclesContext);
+
+  const newCycleForm = useForm<NewCycleFormData>({
+    resolver: zodResolver(newCicleFormValidationSchema),
+    defaultValues: {
+      task: "",
+      minutesAmount: 0,
+    },
+  });
+
+  const { handleSubmit, watch, reset } = newCycleForm;
 
   function handleCreateNewCycle(data: NewCycleFormData) {
-    const id = String(new Date().getTime());
-
-    const newCycle: Cycle = {
-      id,
-      task: data.task,
-      minutesAmount: data.minutesAmount,
-      startDate: new Date(),
-    };
-
-    setCycles((prev) => [...prev, newCycle]);
-    setActiveCycle(id);
-    // aqui a baixo vamos colocar 0 para que o ciclo não comece onde o anterior parou, isso resolve um bug, se não nunca voltaria do inicio a contagem
-    setAmountSecondsPassed(0);
+    createNewCycle(data);
     // ele volta os campos do formulário para os valores default
     reset();
   }
-
-  function hadleInterruptCycle() {
-    setCycles((state) =>
-      state.map((cycle) => {
-        if (cycle.id === activeCycleId) {
-          return {
-            ...cycle,
-            interruptDate: new Date(),
-          };
-        } else {
-          return cycle;
-        }
-      })
-    );
-    setActiveCycle(null);
-  }
-
-  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
-
-  const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0;
-
-  const minutesAmount = Math.floor(currentSeconds / 60);
-  const secondsAmount = currentSeconds % 60;
-
-  const minutes = String(minutesAmount).padStart(2, "0");
-  const seconds = String(secondsAmount).padStart(2, "0");
 
   const task = watch("task");
 
   const isSubmitDisabled = !task;
 
-  useEffect(() => {
-    if (activeCycle) {
-      document.title = `Timer - ${activeCycle.task} restam: ${minutes}:${seconds}`;
-    }
-
-    return () => {
-      document.title = "Timer";
-    };
-  }, [minutes, seconds]);
-
   return (
     <HomeContainer>
       <form onSubmit={handleSubmit(handleCreateNewCycle)} action="">
-        <CyclesContext.Provider value={{ activeCycle }}>
+        {/* o react hook form tem seu proprio contexto, sendo assim como deveriamos apenas passar o register, podemos passar todo o useForm em uma variavel, passando o contexto dele e usando o spread operator para desestrutrar */}
+        <FormProvider {...newCycleForm}>
           <NewCicleForm />
-          <Countdown />
-        </CyclesContext.Provider>
-
+        </FormProvider>
+        <Countdown />
         {activeCycle ? (
-          <StopCountDownButton onClick={hadleInterruptCycle} type="button">
+          <StopCountDownButton onClick={interruptCurrentCycle} type="button">
             <HandPalm size={24} />
             Interromper
           </StopCountDownButton>
