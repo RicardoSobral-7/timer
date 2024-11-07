@@ -1,3 +1,4 @@
+import { Circle } from "phosphor-react";
 import { createContext, ReactNode, useReducer, useState } from "react";
 // vamos criar aqui uma interface nova, para caso um dia mudemos a forma de validação que é pelo zod não sofremos muitos problemas, então por esse motivo é recriado
 
@@ -33,27 +34,67 @@ interface CyclesContextProviderProps {
   children: ReactNode;
 }
 
+interface CyclesState {
+  cycles: Cycle[]
+  activeCycleId: string | null
+}
+
 export function CyclesContextProvider({
   children,
 }: CyclesContextProviderProps) {
   // o setCycles, ele vai ser metodo para disparar ações e não mais alterar diretamente o valor de   cycles, então vamos mudar esse nome para dispatch
-  const [cycles, dispatch] = useReducer(
-    // o state, é o valor real (no momento) do nosso estado e uma
-    // action, ela é qual ação o usuário ta querendo utilizar de alteração dentro da nossa variável, ações que o usuário pode fazer para alterar esse nosso "estádo"
-    (state: Cycle[], action: any) => {
-      if (action.type === "ADD_NEW_CYCLE") {
-        return [...state, action.payload.newCycle];
-      }
+  // o state, é o valor real (no momento) do nosso estado e uma, ele pode receber diversas informações
+  // action, ela é qual ação o usuário ta querendo utilizar de alteração dentro da nossa variável, ações que o usuário pode fazer para alterar esse nosso "estádo"
+  const [cyclesState, dispatch] = useReducer((state: CyclesState, action: any) => {
+    switch (action.type) {
+      case "ADD_NEW_CYCLE":
+        return {
+          ...state,
+          cycles: [...state.cycles, action.payload.newCycle],
+          activeCycleId: action.payload.newCycle.id
+        };
 
-      return state;
-    },
-    []
+      case "INTERRUPT_CURRENT_CYCLE":
+        return {
+          ...state,
+          activeCycleId: null,
+          cycles: state.cycles.map((cycle) => {
+            if (cycle.id === state.activeCycleId) {
+              return {
+                ...cycle,
+                interruptDate: new Date(),
+              };
+            } else {
+              return cycle;
+            }
+          })
+        }
+      case "MARK_CURRENT_CYCLE_AS_FINISHED":
+        return {
+          ...state,
+          activeCycleId: null,
+          cycles: state.cycles.map((cycle) => {
+            if (cycle.id === state.activeCycleId) {
+              return { ...cycle, finishedDate: new Date() }
+            } else {
+              return cycle
+            }
+          })
+        }
+      default:
+        return state
+    }
+  },
+    {
+      cycles: [],
+      activeCycleId: null
+    }
   );
-
-  const [activeCycleId, setActiveCycle] = useState<string | null>(null);
   const [amountSecondsPassed, setAmountSecondsPassed] = useState(0);
 
-  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
+  const { cycles, activeCycleId } = cyclesState
+
+  const activeCycle = cycles.find((cycle: Cycle) => cycle.id === activeCycleId);
 
   function markCurrentCycleAsFinished() {
     dispatch({
@@ -62,19 +103,6 @@ export function CyclesContextProvider({
         activeCycleId,
       },
     });
-
-    // setCycles((state) =>
-    //   state.map((cycle) => {
-    //     if (cycle.id === activeCycleId) {
-    //       return {
-    //         ...cycle,
-    //         finishedDate: new Date(),
-    //       };
-    //     } else {
-    //       return cycle;
-    //     }
-    //   })
-    // );
   }
 
   // vamos criar um proxy, uma função que chama outra função
@@ -100,9 +128,6 @@ export function CyclesContextProvider({
         newCycle,
       },
     });
-    // setCycles((prev) => [...prev, newCycle]);
-
-    setActiveCycle(id);
     // aqui a baixo vamos colocar 0 para que o ciclo não comece onde o anterior parou, isso resolve um bug, se não nunca voltaria do inicio a contagem
     setAmountSecondsPassed(0);
     // tiramos o reset daqui para coloca rna home, pois o contexto deve depender apenas dele e não de nenhuma biblioteca
@@ -115,20 +140,6 @@ export function CyclesContextProvider({
         activeCycleId,
       },
     });
-
-    // setCycles((state) =>
-    //   state.map((cycle) => {
-    //     if (cycle.id === activeCycleId) {
-    //       return {
-    //         ...cycle,
-    //         interruptDate: new Date(),
-    //       };
-    //     } else {
-    //       return cycle;
-    //     }
-    //   })
-    // );
-    setActiveCycle(null);
   }
 
   return (
