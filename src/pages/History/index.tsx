@@ -28,7 +28,7 @@ export function History() {
                   <td>{cycle.minutesAmount} minutos</td>
                   <td>
                     {/* para pegar o momento de quanto tempo atras foi que ocorreu devemos passar o tempo, e em sequencia esse sufixo, porem está em ingles, então vamos importa o ptBr */}
-                    {formatDistanceToNow(cycle.startDate, {
+                    {formatDistanceToNow(new Date(cycle.startDate), {
                       addSuffix: true,
                       locale: ptBR,
                     })}

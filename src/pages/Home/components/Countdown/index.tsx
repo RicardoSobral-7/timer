@@ -41,7 +41,7 @@ export function Countdown() {
         // como o segundo do set interval não é preciso, nos vamos utilizar o difference in seconds do date fns para o calculo, para isso precisamos passar primeiro a data atual e em sequencia a data de inicio como está a baixo
         const secondsDifference = differenceInSeconds(
           new Date(),
-          activeCycle.startDate
+          new Date(activeCycle.startDate)
         );
 
         if (secondsDifference >= totalSeconds) {
